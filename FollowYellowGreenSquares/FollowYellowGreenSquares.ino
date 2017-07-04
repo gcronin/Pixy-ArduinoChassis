@@ -1,18 +1,11 @@
-#include <Adafruit_TB6612.h>   
 #include <SPI.h>  
 #include <Pixy.h>
-
-// motor pins
-#define AIN1 5
-#define BIN1 9
-#define AIN2 4
-#define BIN2 10
-#define PWMA 3
-#define PWMB 11
+#include <Wire.h>
+#include <NXTI2CDevice.h>
+#include <NXTMMX.h>
 
 // Initializing motors.  
-Motor leftWheel = Motor(AIN1, AIN2, PWMA, 1);
-Motor rightWheel = Motor(BIN1, BIN2, PWMB, 1);
+NXTMMX driveControl;
 float leftSpeed = 0;
 float rightSpeed = 0;
 int error = 0;
@@ -20,7 +13,7 @@ long delay_period = 1000;
 long timestamp = 0;
 int searchingCounter = 0;
 float kp = 0.3;
-float baseSpeed = 0.0;
+float baseSpeed = 10.0;
 
 // This is the main Pixy object 
 Pixy pixy;
@@ -33,6 +26,9 @@ void setup()
 {
   Serial.begin(9600);
   Serial.print("Starting...\n");
+
+  driveControl.reset();   //reset NXT motor encoders
+  driveControl.stop(MMX_Motor_Both, MMX_Next_Action_Float);
 
   pixy.init();
   uint16_t w = 0;
@@ -115,6 +111,7 @@ void loop()
     state = SEARCHING;
   }
   
+  //Serial feedback happens periodically
   if(millis() - timestamp > delay_period )
   {
     switch(state)
@@ -150,23 +147,29 @@ void loop()
   switch(state)
   {
     case ERROR_TILT:
-      brake(leftWheel, rightWheel);
+      driveControl.stop(MMX_Motor_Both, MMX_Next_Action_Float);
       break;
     case ERROR_SPURIOUS:
-      brake(leftWheel, rightWheel);
+      driveControl.stop(MMX_Motor_Both, MMX_Next_Action_Float);
       break;
     case SEARCHING:
-      brake(leftWheel, rightWheel);
+      driveControl.stop(MMX_Motor_Both, MMX_Next_Action_Float);
       break;
     case SINGLE_LOCK_BLUE:
     case SINGLE_LOCK_GREEN:
     case DOUBLE_LOCK:
       leftSpeed = baseSpeed + kp * error;
       rightSpeed = baseSpeed - kp * error;
-      leftWheel.drive(leftSpeed);
-      rightWheel.drive(rightSpeed);
+      byte motorDirection =  leftSpeed > 0 ? 0x01: 0x00;
+      byte motorSpeed = abs(leftSpeed);
+      driveControl.runUnlimited(MMX_Motor_1, motorDirection, motorSpeed);
+      motorDirection =  rightSpeed > 0 ? 0x01: 0x00;
+      motorSpeed = abs(rightSpeed);
+      driveControl.runUnlimited(MMX_Motor_2, motorDirection, motorSpeed);
       break;
   }
 
 }
+
+
 
