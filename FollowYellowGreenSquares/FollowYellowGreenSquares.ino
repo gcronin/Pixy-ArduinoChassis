@@ -25,6 +25,10 @@ State state = SEARCHING;
 void setup()
 {
   Serial.begin(9600);
+  Serial.write(17);  //backlight for LCD
+  delay(50);
+  Serial.write(12);  //reset display for LCD
+  delay(50);
   Serial.print("Starting...\n");
 
   driveControl.reset();   //reset NXT motor encoders
@@ -36,6 +40,7 @@ void setup()
   {
     w = pixy.testConnection();
   }
+  Serial.write(12);  //reset display for LCD
   Serial.print("Found Pixy!...\n");
 }
 
@@ -114,6 +119,7 @@ void loop()
   //Serial feedback happens periodically
   if(millis() - timestamp > delay_period )
   {
+    Serial.write(12); //clear LCD display
     switch(state)
       {
         case ERROR_TILT:
@@ -135,12 +141,13 @@ void loop()
           Serial.print("Double Lock");
           break;
       }
-      Serial.print("   Error: ");
+      Serial.write(13);  // move down a line on LCD
+      Serial.print("E:");
       Serial.print(error);
-      Serial.print("  Left: ");
-      Serial.print(leftSpeed);
-      Serial.print("  Right: ");
-      Serial.println(rightSpeed);
+      Serial.print(" L:");
+      Serial.print(int(leftSpeed));
+      Serial.print(" R:");
+      Serial.print(int(rightSpeed));
       timestamp = millis();
   }
 
